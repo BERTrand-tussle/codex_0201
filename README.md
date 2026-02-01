@@ -1,14 +1,18 @@
 **🔬 DeepResearch-MAS: Self-Architecting Multi-Agent System**
+
+
 DeepResearch-MAS is an advanced research orchestrator that moves beyond linear AI prompting. It treats multi-agent collaboration as "organizational design in code," dynamically re-architecting its own agent structure based on the complexity, risk, and depth required for a specific task.
 
-🚀 Key Features
+**🚀 Key Features
+**
 
 Dynamic Pattern Switching: Automatically toggles between Adversarial Debate (for risk analysis), Planner-Executor-Verifier (P-E-V) (for technical precision), and Manager-Worker (for efficient synthesis).
 Regional Parallelism: Dispatches specialized agents for NA, APAC, and EMEA to capture localized market nuances.
 Self-Correction Loops: A cynical auditor agent identifies gaps and forces the system to iterate until explicit success criteria are met.
 Human-in-the-Loop (HITL) Evals: Captures expert feedback at the end of each turn, saving it as grounding context for subsequent research sessions.
 
-🛠️ How to Run
+**🛠️ How to Run
+**
 
 Setup Environment:
 Bash
@@ -22,7 +26,9 @@ python research_app.py
 Select Your Pattern: The system prompts for Reasoning and Depth values (0-100). These inputs act as architectural triggers.
 
 
-🧪 Demo Steps (Try These!)
+**🧪 Demo Steps (Try These!)
+**
+
 To see the system dynamically change its "Org Chart," run these two scenarios:
 
 Scenario A: The Risk-First Lens (Adversarial Pattern)
@@ -38,7 +44,9 @@ Why this pattern: High Depth triggers the Planner-Executor-Verifier. Here, the f
 Outcome: A highly structured, verified technical guide. You will likely see the Verifier "FAIL" the first draft if it misses specific warehouse-native connectors, forcing a self-correction.
 
 
-📊 Evaluation & Transparency
+**📊 Evaluation & Transparency
+**
+
 Every run generates a session folder in research_outputs/ containing:
 Mermaid Orchestration Trace: A visual diagram of the specific agent path taken.
 Orchestration Logic Table: A step-by-step rationale for every handoff.
