@@ -50,7 +50,9 @@ Outcome: A highly structured, verified technical guide. You will likely see the 
 Every run generates a session folder in research_outputs/ containing:
 
 Mermaid Orchestration Trace: A visual diagram of the specific agent path taken.
+
 Orchestration Logic Table: A step-by-step rationale for every handoff.
+
 Expert Doubts: A "Human Handoff" section identifying what the AI can't know without internal data.
 
 Track Alignment: 
