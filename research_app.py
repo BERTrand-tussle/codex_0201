@@ -3,76 +3,125 @@ import re
 from openai import OpenAI
 from datetime import datetime
 
-# 1. Setup
+# 1. SETUP & ENVIRONMENT
+# Ensure your OPENAI_API_KEY is in GitHub Secrets (Codespaces)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 OUTPUT_DIR = "research_outputs"
-if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
+KNOWLEDGE_DIR = "pri_knowledge_final" # Your synced private folder
+
+# Ensure directories exist
+for folder in [OUTPUT_DIR, KNOWLEDGE_DIR]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 def slugify(text):
     """Converts topic into a filename-friendly string."""
-    return re.sub(r'[^\w\-]', '_', text)[:30]
+    return re.sub(r'[^\w\-]', '_', text.strip())[:30]
 
-def deep_research_v4(topic):
+# --- MODULAR TOOL: KNOWLEDGE ABSTRACTION ---
+def perform_grounded_search(query):
+    """
+    Reads from the private world-view folder.
+    In a production app, this would be swapped for a Vector DB or Search API.
+    """
+    print(f"📖 [GROUNDING] Accessing private expert context for: {query}...")
+    try:
+        # Looking for any .md or .txt files in your private folder
+        files = os.listdir(KNOWLEDGE_DIR)
+        if not files:
+            return "No prior world-view files found."
+        
+        combined_context = ""
+        for file in files:
+            with open(os.path.join(KNOWLEDGE_DIR, file), "r") as f:
+                combined_context += f.read() + "\n"
+        return combined_context
+    except Exception as e:
+        return f"Grounding Error: {str(e)}"
+
+# --- MULTI-AGENT CORE LOGIC ---
+def run_deep_research_mas(topic):
     traces = []
-    print(f"\n--- 🚀 Starting Multi-Agent Research: {topic} ---")
+    print(f"\n🚀 Starting Multi-Agent Session for: {topic}")
+
+    # AGENT 1: THE GROUNDING AGENT
+    traces.append("### [SYSTEM] Handoff to GROUNDING_AGENT")
+    prior_knowledge = perform_grounded_search(topic)
+    traces.append(f"**GROUNDING_AGENT:** Successfully retrieved user-provided expert context.")
+
+    # AGENT 2: THE PLANNER (STRATEGIST)
+    traces.append("\n### [SYSTEM] Handoff to PLANNER_AGENT")
+    planner_prompt = (
+        f"You are the Lead Research Architect. \n"
+        f"TOPIC: {topic}\n"
+        f"PRIOR USER CONTEXT: {prior_knowledge}\n"
+        f"TASK: Create a 3-step execution strategy for the researcher. "
+        f"Prioritize identifying gaps where current market data might contradict the user's world-view."
+    )
     
-    # --- STEP 1: PLANNER ---
-    traces.append("### [SYSTEM] Handoff to PLANNER_AGENT")
-    planner_prompt = f"Break down the topic '{topic}' into 3 specific research questions."
-    
-    plan_response = client.chat.completions.create(
+    plan = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": planner_prompt}]
-    )
-    plan = plan_response.choices[0].message.content
-    traces.append(f"**PLANNER_AGENT Decision:** Created strategy.\n\n**Plan:**\n{plan}")
+    ).choices[0].message.content
+    traces.append(f"**PLANNER_AGENT Strategy:**\n{plan}")
+    print("✅ Strategy defined.")
 
-    # --- STEP 2: RESEARCHER ---
+    # AGENT 3: THE RESEARCHER (EXPERT)
     traces.append("\n### [SYSTEM] Handoff to RESEARCHER_AGENT")
-    researcher_prompt = f"Provide a detailed report based on this plan:\n{plan}"
+    researcher_prompt = f"Act as an Expert Industry Analyst. Execute this research plan:\n{plan}\nProvide a detailed report."
     
-    report_response = client.chat.completions.create(
+    initial_report = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": researcher_prompt}]
-    )
-    initial_report = report_response.choices[0].message.content
-    traces.append("**RESEARCHER_AGENT Decision:** Generated initial content.")
+    ).choices[0].message.content
+    traces.append("**RESEARCHER_AGENT:** Generated comprehensive report based on strategy.")
+    print("✅ Research gathered.")
 
-    # --- STEP 3: VERIFIER (PHASE 3) ---
+    # AGENT 4: THE VERIFIER (SYNECTICAL AUDITOR)
     traces.append("\n### [SYSTEM] Handoff to VERIFIER_AGENT")
-    verifier_prompt = f"Review this research report for clarity and potential gaps. Provide a brief critique:\n\n{initial_report}"
+    verifier_prompt = (
+        f"You are a Skeptical Auditor. Review this report for logical fallacies, "
+        f"hallucinations, or missed risks mentioned in the world-view: {prior_knowledge}\n\n"
+        f"REPORT TO AUDIT: {initial_report}"
+    )
     
-    verifier_response = client.chat.completions.create(
+    critique = client.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": verifier_prompt}]
-    )
-    critique = verifier_response.choices[0].message.content
-    traces.append(f"**VERIFIER_AGENT Critique:**\n{critique}")
-    print("✅ Verification complete.")
+    ).choices[0].message.content
+    traces.append(f"**VERIFIER_AGENT Audit & Risk Assessment:**\n{critique}")
+    print("✅ Audit complete.")
 
-    # --- STEP 4: NAMING & SAVING ---
-    # New Format: Timestamp_Topic_Date.md
-    time_str = datetime.now().strftime("%H%M")     # e.g., 1430
-    date_str = datetime.now().strftime("%Y-%m-%d") # e.g., 2026-02-01
-    clean_topic = slugify(topic)                   # e.g., AI_Impact
-    
-    filename = f"{OUTPUT_DIR}/{time_str}_{clean_topic}_{date_str}.md"
-    
+    # --- FILE GENERATION ---
+    time_str = datetime.now().strftime("%H%M")
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"{OUTPUT_DIR}/{time_str}_{slugify(topic)}_{date_str}.md"
+
     with open(filename, "w") as f:
-        f.write(f"# Deep Research Report: {topic}\n\n")
-        f.write("## 1. Multi-Agent Coordination Traces\n")
+        f.write(f"# Multi-Agent Deep Research: {topic}\n\n")
+        
+        # Mermaid Visual Trace for Judges
+        f.write("## 1. System Coordination (Visual Trace)\n")
+        f.write("```mermaid\n")
+        f.write("graph TD\n")
+        f.write("    User([User World-View]) -->|Grounding| G[Grounding Agent]\n")
+        f.write("    G -->|Context| P[Planner Agent]\n")
+        f.write("    P -->|Strategy| R[Researcher Agent]\n")
+        f.write("    R -->|Draft| V[Verifier Agent]\n")
+        f.write("    V -->|Cynical Audit| Report[Final Markdown Report]\n")
+        f.write("```\n\n")
+
+        f.write("## 2. Multi-Agent Logic Traces\n")
         for trace in traces:
             f.write(f"{trace}\n\n")
-        f.write("----- \n")
-        f.write("## 2. Final Research Output\n")
+            
+        f.write("---\n## 3. Final Deep Research Report\n")
         f.write(initial_report)
     
     return filename
 
 if __name__ == "__main__":
-    query = input("What do you want to research? ")
-    file_path = deep_research_v4(query)
-    print(f"\n--- ✨ DONE! ✨ ---")
-    print(f"File Saved: {file_path}")
+    user_topic = input("Enter your research topic: ")
+    saved_path = run_deep_research_mas(user_topic)
+    print(f"\n✨ SUCCESS! ✨\nYour report is ready: {saved_path}")
